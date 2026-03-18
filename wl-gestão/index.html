@@ -1,0 +1,2203 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WL System | Gestão</title>
+
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/wl-logo.png">
+  <link rel="apple-touch-icon" href="assets/wl-logo.png">
+  <meta name="theme-color" content="#0F1B6D">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root {
+      --deluxe-gradient: linear-gradient(135deg, #0F1B6D 0%, #123C9C 55%, #18C4D8 100%);
+      --client-gradient: linear-gradient(135deg, #0F1B6D 0%, #11998E 55%, #18C4D8 100%);
+      --deluxe-glow: 0 10px 25px rgba(18, 60, 156, 0.28);
+      --client-glow: 0 10px 25px rgba(24, 196, 216, 0.20);
+      --bg-color: #F0F4F8;
+      --card-bg: rgba(255,255,255,0.90);
+      --card-border: 1px solid rgba(255,255,255,1);
+      --card-shadow: 0 15px 35px rgba(0,0,0,0.04), 0 5px 15px rgba(0,0,0,0.02);
+      --text-main: #1C2833;
+      --text-muted: #5D6D7E;
+      --sidebar-bg: #FFFFFF;
+      --danger: #E74C3C;
+      --line: #EEF2F7;
+      --success: #11998E;
+      --warning: #F59E0B;
+      --pending: #B45309;
+      --reject: #DC2626;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+      background-color: var(--bg-color);
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(24,196,216,0.06) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(15,27,109,0.07) 0%, transparent 40%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes fadeScaleUp {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .view-section {
+      display: none;
+      animation: fadeScaleUp 0.45s ease forwards;
+    }
+
+    .view-section.active { display: block; }
+
+    .login-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+      background: var(--deluxe-gradient);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-wrapper::before {
+      content: "";
+      position: absolute;
+      width: 620px;
+      height: 620px;
+      background: rgba(255,255,255,0.10);
+      border-radius: 50%;
+      filter: blur(80px);
+      top: -220px;
+      left: -220px;
+    }
+
+    .login-container {
+      background-color: rgba(255,255,255,0.96);
+      backdrop-filter: blur(20px);
+      padding: 50px 45px;
+      border-radius: 24px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 460px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.5);
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand-login {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+
+    .brand-login-logo {
+      width: 120px;
+      max-width: 42vw;
+      height: auto;
+      object-fit: contain;
+      margin-bottom: 14px;
+      filter: drop-shadow(0 10px 24px rgba(15, 27, 109, 0.18));
+    }
+
+    .brand-login-text h1 {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #0F1B6D 0%, #0F1B6D 65%, #18C4D8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-login-text p {
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .app-container {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 280px;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      box-shadow: 5px 0 30px rgba(0,0,0,0.03);
+      z-index: 10;
+      border-right: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .sidebar-header { padding: 32px 26px 18px; }
+
+    .brand-sidebar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-sidebar-logo {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.96);
+      padding: 6px;
+      box-shadow: 0 8px 20px rgba(15, 27, 109, 0.10);
+      flex-shrink: 0;
+    }
+
+    .brand-sidebar-text {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.1;
+    }
+
+    .brand-sidebar-text strong {
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+    }
+
+    .brand-sidebar-text span {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .admin-title {
+      background: linear-gradient(135deg, #0F1B6D 0%, #123C9C 60%, #18C4D8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .client-title {
+      background: linear-gradient(135deg, #0F1B6D 0%, #11998E 55%, #18C4D8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .sidebar-nav { flex-grow: 1; padding: 18px 15px; }
+
+    .sidebar-nav a {
+      padding: 15px 18px;
+      margin-bottom: 8px;
+      text-decoration: none;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      border-radius: 14px;
+      transition: all 0.25s ease;
+    }
+
+    .sidebar-nav a:hover {
+      background-color: #F3F4F6;
+      color: var(--text-main);
+      transform: translateX(5px);
+    }
+
+    .nav-admin.active {
+      background: var(--deluxe-gradient);
+      color: #fff;
+      box-shadow: var(--deluxe-glow);
+    }
+
+    .nav-client.active {
+      background: var(--client-gradient);
+      color: #fff;
+      box-shadow: var(--client-glow);
+    }
+
+    .sidebar-footer { padding: 24px 30px 30px; }
+
+    .btn-sair {
+      color: var(--danger);
+      font-size: 15px;
+      text-decoration: none;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .main-content {
+      flex-grow: 1;
+      padding: 40px 50px;
+      width: calc(100% - 280px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 36px;
+      gap: 16px;
+    }
+
+    .top-bar h1 {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+    }
+
+    .date-badge {
+      background: white;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #123C9C;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    .date-badge.client { color: #11998E; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 26px;
+      margin-bottom: 30px;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      padding: 30px;
+      border-radius: 24px;
+      box-shadow: var(--card-shadow);
+      border: var(--card-border);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.25s ease;
+    }
+
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      height: 5px;
+      background: #E5E7EB;
+    }
+
+    .kpi-card:hover { transform: translateY(-6px); }
+    .kpi-card.highlight::before, .kpi-card:hover::before { background: var(--deluxe-gradient); }
+    .kpi-card.highlight-client::before, .kpi-card.client:hover::before { background: var(--client-gradient); }
+
+    .kpi-card h3 {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 15px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    .kpi-card p {
+      font-size: 36px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      letter-spacing: -1px;
+    }
+
+    .kpi-card span {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-weight: 600;
+      display: inline-block;
+      padding: 6px 12px;
+      background: #F3F4F6;
+      border-radius: 8px;
+    }
+
+    .panel-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 26px;
+    }
+
+    .panel {
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      padding: 32px;
+      border-radius: 24px;
+      box-shadow: var(--card-shadow);
+      border: var(--card-border);
+      margin-bottom: 26px;
+    }
+
+    .panel h3 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 22px;
+    }
+
+    .chart-wrap { height: 280px; position: relative; }
+
+    .hero-client {
+      background: var(--client-gradient);
+      color: #fff;
+      border-radius: 24px;
+      padding: 34px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      gap: 18px;
+    }
+
+    .hero-client h3 { font-size: 22px; margin-bottom: 8px; }
+    .hero-client p { opacity: 0.9; max-width: 700px; }
+
+    .hero-total { text-align: right; }
+
+    .hero-total span {
+      display: block;
+      font-size: 13px;
+      text-transform: uppercase;
+      font-weight: 800;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+
+    .hero-total strong { font-size: 42px; line-height: 1; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 2fr 1fr 200px;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .input-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .input-group input {
+      width: 100%;
+      height: 52px;
+      padding: 0 16px;
+      border: 2px solid #E5E7EB;
+      border-radius: 12px;
+      font-size: 15px;
+      color: var(--text-main);
+      background: #F9FAFB;
+      transition: all 0.25s ease;
+    }
+
+    .input-group input:focus {
+      border-color: #18C4D8;
+      background: #fff;
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(24,196,216,0.12);
+    }
+
+    .btn-primary {
+      width: 100%;
+      height: 52px;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      background: var(--deluxe-gradient);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: var(--deluxe-glow);
+    }
+
+    .btn-primary:hover { transform: translateY(-2px); }
+    .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .btn-client {
+      background: var(--client-gradient);
+      box-shadow: var(--client-glow);
+    }
+
+    .btn-inline { width: auto; padding: 0 32px; }
+    .btn-fixed { max-width: 320px; margin-bottom: 14px; }
+
+    .loader-text {
+      font-size: 14px;
+      color: #123C9C;
+      font-weight: 700;
+      display: none;
+      margin-top: 10px;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 16px 14px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--text-muted);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 1px;
+    }
+
+    td {
+      color: var(--text-main);
+      font-weight: 500;
+    }
+
+    .align-right, td.align-right { text-align: right; }
+    .center { text-align: center; }
+
+    .btn-action {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      opacity: 0.65;
+      transition: 0.2s ease;
+      padding: 4px;
+    }
+
+    .btn-action:hover {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .status-aprovado {
+      background: rgba(56,239,125,0.15);
+      color: #11998E;
+    }
+
+    .status-aprovado .status-dot { background: #22C55E; }
+
+    .status-pendente {
+      background: rgba(245,158,11,0.15);
+      color: #B45309;
+    }
+
+    .status-pendente .status-dot { background: #F59E0B; }
+
+    .status-rejeitado {
+      background: rgba(239,68,68,0.15);
+      color: #DC2626;
+    }
+
+    .status-rejeitado .status-dot { background: #EF4444; }
+
+    .status-badge {
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .status-ok {
+      background: rgba(56,239,125,0.15);
+      color: #11998E;
+    }
+
+    .total-box {
+      background: #fff;
+      border: 2px solid #F0F4F8;
+      padding: 24px 40px;
+      border-radius: 20px;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .total-box.alt { margin-bottom: 0; }
+
+    .total-box-label {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+
+    .relatorio-total {
+      background: var(--deluxe-gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-size: 42px;
+      font-weight: 900;
+    }
+
+    .center-panel {
+      text-align: center;
+      padding: 80px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .big-title {
+      font-size: 26px;
+      margin-bottom: 12px;
+    }
+
+    .muted { color: var(--text-muted); }
+    .mb-24 { margin-bottom: 24px; }
+
+    .timeline {
+      display: grid;
+      gap: 18px;
+    }
+
+    .timeline-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .timeline-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #11998E 0%, #38EF7D 100%);
+      margin-top: 4px;
+      flex-shrink: 0;
+    }
+
+    .timeline-content strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .timeline-content span {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .insight-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .insight-item {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+      background: #fff;
+    }
+
+    .insight-item strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .insight-item span {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .summary-box {
+      background: #fff;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      padding: 18px;
+    }
+
+    .summary-box strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .summary-box span { color: var(--text-muted); }
+
+    .report-actions {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-mini {
+      border: none;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn-aprovar {
+      background: rgba(34,197,94,0.12);
+      color: #15803D;
+    }
+
+    .btn-rejeitar {
+      background: rgba(239,68,68,0.12);
+      color: #B91C1C;
+    }
+
+    @media (max-width: 1024px) {
+      .panel-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr 1fr; }
+      .form-row .btn-primary { grid-column: span 2; }
+    }
+
+    @media (max-width: 768px) {
+      .app-container { flex-direction: column; }
+      .sidebar { width: 100%; }
+      .sidebar-nav { display: flex; overflow-x: auto; white-space: nowrap; }
+      .main-content { width: 100%; padding: 24px 18px; }
+      .top-bar { flex-direction: column; align-items: flex-start; }
+      .hero-client { flex-direction: column; align-items: flex-start; }
+      .hero-total { text-align: left; }
+      .grid-2, .form-row { grid-template-columns: 1fr; }
+      .form-row .btn-primary { grid-column: span 1; }
+      .report-actions { flex-direction: column; }
+      .btn-inline, .btn-fixed { width: 100%; max-width: none; }
+      .kpi-card p, .hero-total strong, .relatorio-total { font-size: 32px; }
+
+      .brand-login-logo { width: 96px; }
+      .brand-login-text h1 { font-size: 24px; }
+      .brand-login-text p { font-size: 14px; }
+      .brand-sidebar-logo { width: 44px; height: 44px; }
+      .brand-sidebar-text strong { font-size: 16px; }
+      .brand-sidebar-text span { font-size: 11px; }
+      .sidebar-header { padding: 16px 18px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="login-view" class="login-wrapper">
+    <div class="login-container">
+      <div class="brand-login">
+        <img src="assets/wl-logo.png" alt="WL System" class="brand-login-logo">
+        <div class="brand-login-text">
+          <h1>WL SYSTEM</h1>
+          <p>Gestão de Contrato e Transparência</p>
+        </div>
+      </div>
+
+      <form id="form-login">
+        <div class="input-group">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="Digite seu e-mail" required />
+        </div>
+
+        <div class="input-group">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="••••••••" required />
+        </div>
+
+        <button type="submit" class="btn-primary" id="btn-login-submit">Acessar Sistema</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="admin-app-view" class="app-container hidden">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-sidebar">
+          <img src="assets/wl-logo.png" alt="WL System" class="brand-sidebar-logo">
+          <div class="brand-sidebar-text">
+            <strong class="admin-title">WL SYSTEM</strong>
+            <span>Painel Administrativo</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-nav">
+        <a class="nav-link nav-admin active" data-target="view-dashboard-admin">Dashboard</a>
+        <a class="nav-link nav-admin" data-target="view-horas-admin">Lançar Horas</a>
+        <a class="nav-link nav-admin" data-target="view-produtos-admin">Lançar Produtos</a>
+        <a class="nav-link nav-admin" data-target="view-relatorios-admin">Relatório de Medição</a>
+      </div>
+
+      <div class="sidebar-footer">
+        <a class="btn-sair">Sair do Sistema</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="top-bar">
+        <h1 class="page-title">Visão Geral do Mês</h1>
+        <div class="date-badge" id="admin-date-badge"></div>
+      </div>
+
+      <section id="view-dashboard-admin" class="view-section active">
+        <div class="kpi-grid">
+          <div class="kpi-card highlight">
+            <h3>Faturamento Aprovado</h3>
+            <p class="dash-faturamento">R$ 0,00</p>
+            <span>Total aprovado para faturamento</span>
+          </div>
+
+          <div class="kpi-card">
+            <h3>Produtos Aprovados</h3>
+            <p class="dash-produtos">0</p>
+            <span class="dash-sub-produtos">R$ 7,50 / un.</span>
+          </div>
+
+          <div class="kpi-card">
+            <h3>Horas Aprovadas</h3>
+            <p class="dash-horas">0h</p>
+            <span class="dash-sub-horas">R$ 35,00 / h</span>
+          </div>
+        </div>
+
+        <div class="panel-grid">
+          <div class="panel">
+            <h3>Composição do Faturamento</h3>
+            <div class="chart-wrap">
+              <canvas id="chartComposicao"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Atividades Recentes</h3>
+            <div class="table-wrap">
+              <table class="table-recentes">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Resumo</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-horas-admin" class="view-section">
+        <div class="panel">
+          <h3>Registro de Execução Técnica</h3>
+
+          <form id="form-horas">
+            <div class="form-row">
+              <div class="input-group">
+                <label>Descrição da Demanda</label>
+                <input type="text" id="desc-hora" required placeholder="Ex: Ajustes de Layout..." />
+              </div>
+
+              <div class="input-group">
+                <label>Horas Gastas</label>
+                <input type="number" id="qtd-hora" required min="1" placeholder="Ex: 2" />
+              </div>
+
+              <button type="submit" class="btn-primary" id="btn-submit-hora">Registrar Horas</button>
+            </div>
+
+            <div id="loader-hora" class="loader-text">Sincronizando...</div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Histórico de Horas</h3>
+          <div class="table-wrap">
+            <table class="table-horas">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Horas</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th class="align-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-produtos-admin" class="view-section">
+        <div class="panel">
+          <h3>Cadastro Premium de Produtos</h3>
+
+          <form id="form-produtos">
+            <div class="form-row">
+              <div class="input-group">
+                <label>Lote / Categoria</label>
+                <input type="text" id="desc-produto" required placeholder="Ex: Lote Capas..." />
+              </div>
+
+              <div class="input-group">
+                <label>Qtd. de Produtos</label>
+                <input type="number" id="qtd-produto" required min="1" placeholder="Ex: 15" />
+              </div>
+
+              <button type="submit" class="btn-primary" id="btn-submit-produto">Registrar Lote</button>
+            </div>
+
+            <div id="loader-produto" class="loader-text">Sincronizando...</div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Histórico de Produtos</h3>
+          <div class="table-wrap">
+            <table class="table-produtos">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Lote / Referência</th>
+                  <th>Qtd</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th class="align-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-relatorios-admin" class="view-section">
+        <div class="panel center-panel">
+          <h3 class="big-title">Emissão de Medição</h3>
+          <p class="muted mb-24">Gere o PDF ou envie todas as entregas aprovadas para a planilha.</p>
+
+          <div class="total-box">
+            <div class="total-box-label">Total Aprovado a Faturar</div>
+            <div class="relatorio-total">R$ 0,00</div>
+          </div>
+
+          <button class="btn-primary btn-fixed" onclick="exportarPDF()">Exportar Relatório PDF</button>
+          <button class="btn-primary btn-client btn-fixed" onclick="enviarParaPlanilha()">Enviar para Google Sheets</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="client-app-view" class="app-container hidden">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-sidebar">
+          <img src="assets/wl-logo.png" alt="WL System" class="brand-sidebar-logo">
+          <div class="brand-sidebar-text">
+            <strong class="client-title">WL SYSTEM</strong>
+            <span>Portal Haoday</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-nav">
+        <a class="nav-link nav-client active" data-target="view-resumo-client">Resumo Executivo</a>
+        <a class="nav-link nav-client" data-target="view-servicos-client">Aprovar Entregas</a>
+        <a class="nav-link nav-client" data-target="view-solicitacoes-client">Solicitações</a>
+        <a class="nav-link nav-client" data-target="view-metricas-client">Métricas</a>
+        <a class="nav-link nav-client" data-target="view-financeiro-client">Financeiro</a>
+        <a class="nav-link nav-client" data-target="view-relatorios-client">Relatórios</a>
+      </div>
+
+      <div class="sidebar-footer">
+        <a class="btn-sair">Sair do Portal</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="top-bar">
+        <h1 class="page-title">Resumo Executivo</h1>
+        <div class="date-badge client" id="client-date-badge"></div>
+      </div>
+
+      <section id="view-resumo-client" class="view-section active">
+        <div class="hero-client">
+          <div>
+            <h3>Investimento Técnico Aprovado</h3>
+            <p>Acompanhamento em tempo real das entregas aprovadas, consumo técnico validado e projeção de fechamento.</p>
+          </div>
+          <div class="hero-total">
+            <span>Total Aprovado</span>
+            <strong class="dash-faturamento">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card client highlight-client">
+            <h3>Produtos Aprovados</h3>
+            <p class="dash-produtos">0</p>
+            <span>Padrão ouro validado</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>Horas Aprovadas</h3>
+            <p class="dash-horas">0h</p>
+            <span>Suporte, layout e operação</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>Previsão de Fechamento</h3>
+            <p class="dash-faturamento">R$ 0,00</p>
+            <span>Somente itens aprovados</span>
+          </div>
+        </div>
+
+        <div class="panel-grid">
+          <div class="panel">
+            <h3>Últimas Entregas</h3>
+            <div class="table-wrap">
+              <table class="table-recentes">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Serviço</th>
+                    <th>Resumo</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Próximas Ações Recomendadas</h3>
+            <div class="insight-list">
+              <div class="insight-item">
+                <strong>Otimização de páginas</strong>
+                <span>Revisar páginas com maior abandono para melhorar conversão.</span>
+              </div>
+              <div class="insight-item">
+                <strong>Priorização de catálogo</strong>
+                <span>Focar novos cadastros em itens com maior giro e margem.</span>
+              </div>
+              <div class="insight-item">
+                <strong>Ajustes de campanha</strong>
+                <span>Refinar anúncios com ROAS abaixo da meta para aumentar retorno.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-servicos-client" class="view-section">
+        <div class="panel">
+          <h3>Entregas para Aprovação</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Descrição</th>
+                  <th>Qtd/Horas</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-aprovacoes-cliente"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Timeline de Execução</h3>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <strong>Lançamento pelo admin</strong>
+                <span>Hora ou produto é registrado pela WL System.</span>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <strong>Aguardando aprovação</strong>
+                <span>Cliente Haoday analisa e valida o item.</span>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <strong>Status definido</strong>
+                <span>Item pode ser aprovado ou rejeitado pelo cliente.</span>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <strong>Fechamento</strong>
+                <span>Apenas itens aprovados entram na medição final.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-solicitacoes-client" class="view-section">
+        <div class="panel">
+          <h3>Nova Solicitação</h3>
+          <p class="muted mb-24">Formalize solicitações operacionais, sistêmicas e analíticas para a equipe WL iniciar a execução.</p>
+
+          <form id="form-solicitacao">
+            <div class="grid-2">
+              <div class="input-group">
+                <label>Título da Demanda</label>
+                <input type="text" id="titulo-solicitacao" required placeholder="Ex: Instalação de novo gateway" />
+              </div>
+
+              <div class="input-group">
+                <label>Categoria</label>
+                <input type="text" id="categoria-solicitacao" placeholder="Ex: Layout, ERP, Produto, Ads" />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="input-group">
+                <label>Prioridade</label>
+                <input type="text" id="prioridade-solicitacao" placeholder="Ex: Alta" />
+              </div>
+
+              <div class="input-group">
+                <label>Prazo desejado</label>
+                <input type="text" id="prazo-solicitacao" placeholder="Ex: 3 dias úteis" />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Detalhes</label>
+              <input type="text" id="detalhes-solicitacao" required placeholder="Descreva o pedido com clareza" />
+            </div>
+
+            <button type="submit" class="btn-primary btn-client btn-inline">Registrar Solicitação</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Histórico de Solicitações</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Título</th>
+                  <th>Status</th>
+                  <th>Prioridade</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-solicitacoes-cliente">
+                <tr>
+                  <td colspan="4" class="center">Sem solicitações locais exibidas.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-metricas-client" class="view-section">
+        <div class="kpi-grid">
+          <div class="kpi-card client">
+            <h3>Ticket Médio</h3>
+            <p>R$ 342,50</p>
+            <span class="status-badge status-ok">+12% vs mês anterior</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>CAC</h3>
+            <p>R$ 45,90</p>
+            <span class="status-badge status-ok">Otimizado</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>ROAS</h3>
+            <p>4.8x</p>
+            <span class="status-badge status-ok">Acima da meta</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Diagnóstico de Funil de Vendas</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Canal</th>
+                <th>Sessões</th>
+                <th>Conversão</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Google Pesquisa Orgânica</td>
+                <td>4.520</td>
+                <td>2.1%</td>
+                <td><span class="status-badge status-ok">Tags OK</span></td>
+              </tr>
+              <tr>
+                <td>Meta Ads</td>
+                <td>8.100</td>
+                <td>3.4%</td>
+                <td><span class="status-badge status-ok">Pixel Ativo</span></td>
+              </tr>
+              <tr>
+                <td>Acesso Direto</td>
+                <td>2.300</td>
+                <td>1.8%</td>
+                <td><span class="status-badge status-ok">Rastreio OK</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="view-financeiro-client" class="view-section">
+        <div class="kpi-grid">
+          <div class="kpi-card client">
+            <h3>Total por Produtos Aprovados</h3>
+            <p id="financeiro-produtos">R$ 0,00</p>
+            <span>Cadastros validados</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>Total por Horas Aprovadas</h3>
+            <p id="financeiro-horas">R$ 0,00</p>
+            <span>Serviços técnicos validados</span>
+          </div>
+
+          <div class="kpi-card client highlight-client">
+            <h3>Total Geral Aprovado</h3>
+            <p class="dash-faturamento">R$ 0,00</p>
+            <span>Consolidado do período</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Resumo Financeiro</h3>
+          <div class="summary-grid">
+            <div class="summary-box">
+              <strong>Valor unitário por produto</strong>
+              <span>R$ 7,50</span>
+            </div>
+            <div class="summary-box">
+              <strong>Valor por hora técnica</strong>
+              <span>R$ 35,00</span>
+            </div>
+            <div class="summary-box">
+              <strong>Status da medição</strong>
+              <span>Em acompanhamento</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-relatorios-client" class="view-section">
+        <div class="panel">
+          <h3>Central de Relatórios</h3>
+          <p class="muted mb-24">Baixe ou gere relatórios do período atual.</p>
+
+          <div class="report-actions">
+            <button class="btn-primary btn-inline" onclick="exportarPDF()">Baixar Relatório em PDF</button>
+            <button class="btn-primary btn-client btn-inline" onclick="enviarParaPlanilha()">Atualizar Medição no Sheets</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Resumo para Fechamento</h3>
+          <div class="total-box alt">
+            <div class="total-box-label">Previsão Atual Aprovada</div>
+            <div class="relatorio-total">R$ 0,00</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://xdwgafznajylkpxutkub.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhkd2dhZnpuYWp5bGtweHV0a3ViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3ODg1NTAsImV4cCI6MjA4OTM2NDU1MH0.C7poYhHR7O-QpFb5KI25bg6zvdFrYm0tVSPlNMOE5zk';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbylTmxVcoFYNtuNLdozMsVvZ6DaetAQg1P5ceFdiQa0nJVQU9Jgk_s1TomHHFdk3axv/exec';
+
+    const banco = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const VALOR_PRODUTO = 7.50;
+    const VALOR_HORA = 35.00;
+
+    let chartInstance = null;
+    let editandoId = null;
+
+    const cacheDados = {
+      historico: [],
+      solicitacoesLocal: []
+    };
+
+    const loginView = document.getElementById('login-view');
+    const adminApp = document.getElementById('admin-app-view');
+    const clientApp = document.getElementById('client-app-view');
+
+    function numeroSeguro(valor) {
+      const n = Number(valor);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function textoSeguro(valor) {
+      return String(valor || '').trim();
+    }
+
+    function formataMoeda(valor) {
+      return numeroSeguro(valor).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    }
+
+    function dataBadgeAtual() {
+      const hoje = new Date();
+      const texto = hoje.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+      return texto.charAt(0).toUpperCase() + texto.slice(1);
+    }
+
+    function getDataAtual() {
+      const hoje = new Date();
+      return `${String(hoje.getDate()).padStart(2, '0')}/${String(hoje.getMonth() + 1).padStart(2, '0')}/${hoje.getFullYear()}`;
+    }
+
+    function montarLinhaVazia(colspan, texto = 'Vazio') {
+      return `<tr><td colspan="${colspan}" class="center">${texto}</td></tr>`;
+    }
+
+    function getStatusClass(status) {
+      const s = textoSeguro(status).toLowerCase();
+      if (s === 'aprovado') return 'status-aprovado';
+      if (s === 'rejeitado') return 'status-rejeitado';
+      return 'status-pendente';
+    }
+
+    function getStatusLabel(status) {
+      const s = textoSeguro(status).toLowerCase();
+      if (s === 'aprovado') return 'Aprovado';
+      if (s === 'rejeitado') return 'Rejeitado';
+      return 'Pendente';
+    }
+
+    function renderStatusBadge(status) {
+      const cls = getStatusClass(status);
+      const label = getStatusLabel(status);
+      return `<span class="status-pill ${cls}"><span class="status-dot"></span>${label}</span>`;
+    }
+
+    function classeStatusSolicitacao(status) {
+      const valor = textoSeguro(status).toLowerCase();
+      if (valor === 'concluido' || valor === 'concluído') return 'status-ok';
+      if (valor === 'em andamento') return 'status-pendente';
+      return 'status-pendente';
+    }
+
+    function calcularResumo() {
+      let totalProdutos = 0;
+      let totalHoras = 0;
+
+      cacheDados.historico.forEach(item => {
+        const tipo = textoSeguro(item.tipo);
+        const qtd = numeroSeguro(item.quantidade);
+        const status = textoSeguro(item.status).toLowerCase();
+
+        if (status !== 'aprovado') return;
+
+        if (tipo === 'produto') totalProdutos += qtd;
+        if (tipo === 'hora') totalHoras += qtd;
+      });
+
+      const valorProdutos = totalProdutos * VALOR_PRODUTO;
+      const valorHoras = totalHoras * VALOR_HORA;
+      const faturamento = valorProdutos + valorHoras;
+
+      return {
+        totalProdutos,
+        totalHoras,
+        valorProdutos,
+        valorHoras,
+        faturamento
+      };
+    }
+
+    function criarBridgePlanilha() {
+      if (!document.getElementById('sheet-bridge-frame')) {
+        const iframe = document.createElement('iframe');
+        iframe.name = 'sheet-bridge-frame';
+        iframe.id = 'sheet-bridge-frame';
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+      }
+    }
+
+    function enviarAcaoParaPlanilha(action, payload = {}) {
+      if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('COLE_AQUI')) {
+        alert('Configure a URL do Apps Script.');
+        return false;
+      }
+
+      criarBridgePlanilha();
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = APPS_SCRIPT_URL;
+      form.target = 'sheet-bridge-frame';
+      form.style.display = 'none';
+
+      const dados = { action, ...payload };
+
+      Object.keys(dados).forEach((key) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(dados[key]);
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+
+      setTimeout(() => form.remove(), 1000);
+      return true;
+    }
+
+    async function carregarDadosDoBanco() {
+      try {
+        const { data, error } = await banco
+          .from('historico_wl')
+          .select('*')
+          .order('id', { ascending: true });
+
+        if (error) {
+          console.error(error);
+          alert('Erro ao carregar dados do banco.');
+          return;
+        }
+
+        cacheDados.historico = Array.isArray(data) ? data.map(item => ({
+          id: item.id,
+          data: textoSeguro(item.data),
+          tipo: textoSeguro(item.tipo),
+          descricao: textoSeguro(item.descricao),
+          quantidade: numeroSeguro(item.quantidade),
+          status: textoSeguro(item.status) || 'pendente',
+          aprovado_por: textoSeguro(item.aprovado_por),
+          data_aprovacao: textoSeguro(item.data_aprovacao)
+        })) : [];
+
+        atualizarTelas();
+      } catch (err) {
+        console.error(err);
+        alert('Erro crítico ao carregar dados.');
+      }
+    }
+
+    function renderGrafico(valorProdutos, valorHoras) {
+      const canvas = document.getElementById('chartComposicao');
+      if (!canvas) return;
+
+      const ctx = canvas.getContext('2d');
+
+      if (chartInstance) {
+        chartInstance.destroy();
+        chartInstance = null;
+      }
+
+      const semDados = valorProdutos === 0 && valorHoras === 0;
+
+      const grad = ctx.createLinearGradient(0, 0, 0, 400);
+      grad.addColorStop(0, '#18C4D8');
+      grad.addColorStop(1, '#123C9C');
+
+      chartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: semDados ? ['Sem dados'] : ['Produtos', 'Horas'],
+          datasets: [{
+            data: semDados ? [1] : [valorProdutos, valorHoras],
+            backgroundColor: semDados ? ['#E5E7EB'] : [grad, '#0F1B6D'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '78%',
+          plugins: {
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+
+    function atualizarTabelaSolicitacoesLocal() {
+      const tbody = document.getElementById('tabela-solicitacoes-cliente');
+      if (!tbody) return;
+
+      if (!cacheDados.solicitacoesLocal.length) {
+        tbody.innerHTML = montarLinhaVazia(4, 'Sem solicitações locais exibidas.');
+        return;
+      }
+
+      tbody.innerHTML = [...cacheDados.solicitacoesLocal].reverse().map(item => `
+        <tr>
+          <td>${item.data}</td>
+          <td>${item.titulo}</td>
+          <td><span class="status-badge ${classeStatusSolicitacao(item.status)}">${item.status}</span></td>
+          <td>${item.prioridade || '-'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function atualizarTabelaAprovacoesCliente() {
+      const tbody = document.getElementById('tabela-aprovacoes-cliente');
+      if (!tbody) return;
+
+      if (!cacheDados.historico.length) {
+        tbody.innerHTML = montarLinhaVazia(6, 'Nenhuma entrega encontrada.');
+        return;
+      }
+
+      tbody.innerHTML = [...cacheDados.historico].reverse().map(item => {
+        const statusBadge = renderStatusBadge(item.status);
+        const qtdLabel = item.tipo === 'produto'
+          ? `${item.quantidade} un.`
+          : `${item.quantidade}h`;
+
+        const acoes = item.status === 'pendente'
+          ? `
+            <div class="action-row">
+              <button class="btn-mini btn-aprovar" onclick="atualizarStatusItem(${item.id}, 'aprovado')">Aprovar</button>
+              <button class="btn-mini btn-rejeitar" onclick="atualizarStatusItem(${item.id}, 'rejeitado')">Rejeitar</button>
+            </div>
+          `
+          : `<span class="muted">${item.aprovado_por || '-'} ${item.data_aprovacao ? '• ' + item.data_aprovacao : ''}</span>`;
+
+        return `
+          <tr>
+            <td>${item.data}</td>
+            <td>${item.tipo}</td>
+            <td>${item.descricao}</td>
+            <td>${qtdLabel}</td>
+            <td>${statusBadge}</td>
+            <td>${acoes}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function atualizarTelas() {
+      const resumo = calcularResumo();
+
+      let htmlProdutos = '';
+      let htmlHoras = '';
+      let htmlRecentes = '';
+
+      [...cacheDados.historico].reverse().forEach(item => {
+        const id = item.id;
+        const tipo = textoSeguro(item.tipo);
+        const data = textoSeguro(item.data);
+        const descricao = textoSeguro(item.descricao) || '-';
+        const quantidade = numeroSeguro(item.quantidade);
+        const statusBadge = renderStatusBadge(item.status);
+
+        const badge = tipo === 'produto'
+          ? `<span class="status-badge" style="background:rgba(24,196,216,.14);color:#0B7A8C;">PRODUTO</span>`
+          : `<span class="status-badge" style="background:#EEF4FF;color:#123C9C;">HORA</span>`;
+
+        const acoes = `
+          <td class="align-right">
+            <button class="btn-action" type="button" onclick="prepararEdicao(${id})">✏️</button>
+            <button class="btn-action" type="button" onclick="deletarItem(${id})">🗑️</button>
+          </td>
+        `;
+
+        if (tipo === 'produto') {
+          htmlProdutos += `
+            <tr>
+              <td>${data}</td>
+              <td>${descricao}</td>
+              <td>${quantidade} un.</td>
+              <td>R$ ${formataMoeda(quantidade * VALOR_PRODUTO)}</td>
+              <td>${statusBadge}</td>
+              ${acoes}
+            </tr>
+          `;
+        }
+
+        if (tipo === 'hora') {
+          htmlHoras += `
+            <tr>
+              <td>${data}</td>
+              <td>${descricao}</td>
+              <td>${quantidade}h</td>
+              <td>R$ ${formataMoeda(quantidade * VALOR_HORA)}</td>
+              <td>${statusBadge}</td>
+              ${acoes}
+            </tr>
+          `;
+        }
+
+        htmlRecentes += `
+          <tr>
+            <td>${data}</td>
+            <td>${badge}</td>
+            <td>${quantidade}${tipo === 'produto' ? ' un.' : 'h'} - ${descricao}</td>
+          </tr>
+        `;
+      });
+
+      document.querySelectorAll('.dash-faturamento').forEach(el => {
+        el.textContent = 'R$ ' + formataMoeda(resumo.faturamento);
+      });
+
+      document.querySelectorAll('.dash-produtos').forEach(el => {
+        el.textContent = resumo.totalProdutos;
+      });
+
+      document.querySelectorAll('.dash-horas').forEach(el => {
+        el.textContent = resumo.totalHoras + 'h';
+      });
+
+      document.querySelectorAll('.dash-sub-produtos').forEach(el => {
+        el.textContent = `Total: R$ ${formataMoeda(resumo.valorProdutos)}`;
+      });
+
+      document.querySelectorAll('.dash-sub-horas').forEach(el => {
+        el.textContent = `Total: R$ ${formataMoeda(resumo.valorHoras)}`;
+      });
+
+      document.querySelectorAll('.relatorio-total').forEach(el => {
+        el.textContent = 'R$ ' + formataMoeda(resumo.faturamento);
+      });
+
+      const finProd = document.getElementById('financeiro-produtos');
+      const finHoras = document.getElementById('financeiro-horas');
+
+      if (finProd) finProd.textContent = 'R$ ' + formataMoeda(resumo.valorProdutos);
+      if (finHoras) finHoras.textContent = 'R$ ' + formataMoeda(resumo.valorHoras);
+
+      document.querySelectorAll('.table-produtos tbody').forEach(el => {
+        el.innerHTML = htmlProdutos || montarLinhaVazia(6);
+      });
+
+      document.querySelectorAll('.table-horas tbody').forEach(el => {
+        el.innerHTML = htmlHoras || montarLinhaVazia(6);
+      });
+
+      document.querySelectorAll('.table-recentes tbody').forEach(el => {
+        el.innerHTML = htmlRecentes || montarLinhaVazia(3);
+      });
+
+      if (localStorage.getItem('wl_role') === 'admin') {
+        renderGrafico(resumo.valorProdutos, resumo.valorHoras);
+      }
+
+      atualizarTabelaSolicitacoesLocal();
+      atualizarTabelaAprovacoesCliente();
+    }
+
+    async function registrarItem(tipo, descricao, quantidade) {
+      const descricaoLimpa = textoSeguro(descricao);
+      const qtd = parseInt(quantidade, 10);
+
+      if (!descricaoLimpa) {
+        alert('Preencha a descrição.');
+        return;
+      }
+
+      if (!Number.isInteger(qtd) || qtd <= 0) {
+        alert('Informe uma quantidade válida.');
+        return;
+      }
+
+      const btnSubmit = tipo === 'hora'
+        ? document.getElementById('btn-submit-hora')
+        : document.getElementById('btn-submit-produto');
+
+      const loader = tipo === 'hora'
+        ? document.getElementById('loader-hora')
+        : document.getElementById('loader-produto');
+
+      btnSubmit.disabled = true;
+      loader.style.display = 'block';
+
+      try {
+        if (editandoId) {
+          const { error } = await banco
+            .from('historico_wl')
+            .update({
+              descricao: descricaoLimpa,
+              quantidade: qtd
+            })
+            .eq('id', editandoId);
+
+          if (error) {
+            console.error(error);
+            alert('Erro ao atualizar.');
+            return;
+          }
+
+          const index = cacheDados.historico.findIndex(i => i.id === editandoId);
+
+          if (index !== -1) {
+            cacheDados.historico[index].descricao = descricaoLimpa;
+            cacheDados.historico[index].quantidade = qtd;
+
+            const itemAtualizado = cacheDados.historico[index];
+
+            if (tipo === 'hora') {
+              enviarAcaoParaPlanilha('upsert_hora', {
+                id: itemAtualizado.id,
+                data: itemAtualizado.data,
+                descricao: itemAtualizado.descricao,
+                quantidade: itemAtualizado.quantidade,
+                valor_hora: VALOR_HORA,
+                status: itemAtualizado.status || 'pendente',
+                aprovado_por: itemAtualizado.aprovado_por || '',
+                data_aprovacao: itemAtualizado.data_aprovacao || ''
+              });
+            } else {
+              enviarAcaoParaPlanilha('upsert_produto', {
+                id: itemAtualizado.id,
+                data: itemAtualizado.data,
+                descricao: itemAtualizado.descricao,
+                quantidade: itemAtualizado.quantidade,
+                valor_unitario: VALOR_PRODUTO,
+                status: itemAtualizado.status || 'pendente',
+                aprovado_por: itemAtualizado.aprovado_por || '',
+                data_aprovacao: itemAtualizado.data_aprovacao || ''
+              });
+            }
+          }
+
+          editandoId = null;
+          document.getElementById('btn-submit-hora').textContent = 'Registrar Horas';
+          document.getElementById('btn-submit-produto').textContent = 'Registrar Lote';
+        } else {
+          const novoItem = {
+            id: Date.now(),
+            data: getDataAtual(),
+            tipo,
+            descricao: descricaoLimpa,
+            quantidade: qtd,
+            status: 'pendente',
+            aprovado_por: '',
+            data_aprovacao: ''
+          };
+
+          const { error } = await banco
+            .from('historico_wl')
+            .insert([novoItem]);
+
+          if (error) {
+            console.error(error);
+            alert('Erro ao salvar.');
+            return;
+          }
+
+          cacheDados.historico.push(novoItem);
+
+          if (tipo === 'hora') {
+            enviarAcaoParaPlanilha('upsert_hora', {
+              id: novoItem.id,
+              data: novoItem.data,
+              descricao: novoItem.descricao,
+              quantidade: novoItem.quantidade,
+              valor_hora: VALOR_HORA,
+              status: novoItem.status,
+              aprovado_por: novoItem.aprovado_por,
+              data_aprovacao: novoItem.data_aprovacao
+            });
+          } else {
+            enviarAcaoParaPlanilha('upsert_produto', {
+              id: novoItem.id,
+              data: novoItem.data,
+              descricao: novoItem.descricao,
+              quantidade: novoItem.quantidade,
+              valor_unitario: VALOR_PRODUTO,
+              status: novoItem.status,
+              aprovado_por: novoItem.aprovado_por,
+              data_aprovacao: novoItem.data_aprovacao
+            });
+          }
+        }
+
+        atualizarTelas();
+
+        if (tipo === 'hora') {
+          document.getElementById('form-horas').reset();
+        } else {
+          document.getElementById('form-produtos').reset();
+        }
+      } finally {
+        btnSubmit.disabled = false;
+        loader.style.display = 'none';
+      }
+    }
+
+    function prepararEdicao(id) {
+      const item = cacheDados.historico.find(i => i.id === id);
+      if (!item) return;
+
+      editandoId = id;
+
+      if (item.tipo === 'hora') {
+        ativarAba(document.getElementById('admin-app-view'), 'view-horas-admin', 'Lançar Horas');
+        document.getElementById('desc-hora').value = item.descricao;
+        document.getElementById('qtd-hora').value = item.quantidade;
+        document.getElementById('btn-submit-hora').textContent = 'Salvar Alterações';
+      } else {
+        ativarAba(document.getElementById('admin-app-view'), 'view-produtos-admin', 'Lançar Produtos');
+        document.getElementById('desc-produto').value = item.descricao;
+        document.getElementById('qtd-produto').value = item.quantidade;
+        document.getElementById('btn-submit-produto').textContent = 'Salvar Alterações';
+      }
+    }
+
+    async function deletarItem(id) {
+      if (!confirm('Tem certeza que deseja excluir este registro?')) return;
+
+      const item = cacheDados.historico.find(i => i.id === id);
+
+      try {
+        const { error } = await banco
+          .from('historico_wl')
+          .delete()
+          .eq('id', id);
+
+        if (error) {
+          console.error(error);
+          alert('Erro ao excluir.');
+          return;
+        }
+
+        cacheDados.historico = cacheDados.historico.filter(i => i.id !== id);
+
+        if (item?.tipo === 'hora') {
+          enviarAcaoParaPlanilha('delete_hora', { id });
+        }
+
+        if (item?.tipo === 'produto') {
+          enviarAcaoParaPlanilha('delete_produto', { id });
+        }
+
+        if (editandoId === id) {
+          editandoId = null;
+          document.getElementById('form-horas').reset();
+          document.getElementById('form-produtos').reset();
+          document.getElementById('btn-submit-hora').textContent = 'Registrar Horas';
+          document.getElementById('btn-submit-produto').textContent = 'Registrar Lote';
+        }
+
+        atualizarTelas();
+      } catch (err) {
+        console.error(err);
+        alert('Erro crítico ao excluir.');
+      }
+    }
+
+    async function atualizarStatusItem(id, novoStatus) {
+      const item = cacheDados.historico.find(i => i.id === id);
+      if (!item) return;
+
+      const aprovadoPor = localStorage.getItem('wl_role') === 'cliente' ? 'Cliente Haoday' : 'WL System';
+      const dataAprovacao = getDataAtual();
+
+      try {
+        const { error } = await banco
+          .from('historico_wl')
+          .update({
+            status: novoStatus,
+            aprovado_por: aprovadoPor,
+            data_aprovacao: dataAprovacao
+          })
+          .eq('id', id);
+
+        if (error) {
+          console.error(error);
+          alert('Erro ao atualizar status.');
+          return;
+        }
+
+        item.status = novoStatus;
+        item.aprovado_por = aprovadoPor;
+        item.data_aprovacao = dataAprovacao;
+
+        if (item.tipo === 'hora') {
+          enviarAcaoParaPlanilha('atualizar_status_hora', {
+            id: item.id,
+            status: item.status,
+            aprovado_por: item.aprovado_por,
+            data_aprovacao: item.data_aprovacao
+          });
+        } else if (item.tipo === 'produto') {
+          enviarAcaoParaPlanilha('atualizar_status_produto', {
+            id: item.id,
+            status: item.status,
+            aprovado_por: item.aprovado_por,
+            data_aprovacao: item.data_aprovacao
+          });
+        }
+
+        atualizarTelas();
+      } catch (err) {
+        console.error(err);
+        alert('Erro crítico ao atualizar status.');
+      }
+    }
+
+    function exportarPDF() {
+      const resumo = calcularResumo();
+      const itensAprovados = cacheDados.historico.filter(i => textoSeguro(i.status).toLowerCase() === 'aprovado');
+
+      const tempDiv = document.createElement('div');
+      tempDiv.style.padding = '30px';
+      tempDiv.style.fontFamily = 'sans-serif';
+
+      tempDiv.innerHTML = `
+        <div style="text-align:center; margin-bottom:30px;">
+          <img src="assets/wl-logo.png" alt="WL System" style="width:90px; margin-bottom:10px;">
+          <h1 style="color:#123C9C; margin:0;">WL SYSTEM</h1>
+          <h3 style="color:#5D6D7E; margin:5px 0 0 0;">Relatório de Medição e Faturamento</h3>
+        </div>
+
+        <div style="margin-bottom:30px; padding:15px; background:#F0F4F8; border-radius:8px;">
+          <p style="margin:0; font-size:14px;"><strong>Data de Emissão:</strong> ${getDataAtual()}</p>
+          <p style="margin:5px 0 0 0; font-size:18px;"><strong>Total Aprovado a Faturar:</strong> <span style="color:#123C9C;">R$ ${formataMoeda(resumo.faturamento)}</span></p>
+        </div>
+
+        <h4 style="border-bottom:2px solid #E5E7EB; padding-bottom:10px; margin-bottom:15px;">Detalhamento Aprovado</h4>
+
+        <table style="width:100%; border-collapse:collapse; font-size:12px; text-align:left;">
+          <thead style="background:#1C2833; color:#fff;">
+            <tr>
+              <th style="padding:10px;">Data</th>
+              <th style="padding:10px;">Tipo</th>
+              <th style="padding:10px;">Descrição</th>
+              <th style="padding:10px;">Quantidade</th>
+              <th style="padding:10px;">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itensAprovados.length
+              ? itensAprovados.map(i => `
+                <tr style="border-bottom:1px solid #E5E7EB;">
+                  <td style="padding:10px;">${i.data}</td>
+                  <td style="padding:10px; text-transform:uppercase;">${i.tipo}</td>
+                  <td style="padding:10px;">${i.descricao}</td>
+                  <td style="padding:10px;">${i.quantidade}</td>
+                  <td style="padding:10px;">${getStatusLabel(i.status)}</td>
+                </tr>
+              `).join('')
+              : `<tr><td colspan="5" style="padding:10px; text-align:center;">Nenhum item aprovado encontrado.</td></tr>`
+            }
+          </tbody>
+        </table>
+      `;
+
+      html2pdf().set({
+        margin: 10,
+        filename: 'WL_System_Medicao.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(tempDiv).save();
+    }
+
+    function enviarParaPlanilha() {
+      const resumo = calcularResumo();
+      const itensAprovados = cacheDados.historico.filter(i => textoSeguro(i.status).toLowerCase() === 'aprovado');
+
+      if (!itensAprovados.length) {
+        alert('Não há registros aprovados para enviar.');
+        return;
+      }
+
+      const ok = enviarAcaoParaPlanilha('enviar_relatorio', {
+        data_emissao: getDataAtual(),
+        total_faturar: 'R$ ' + formataMoeda(resumo.faturamento),
+        total_horas: resumo.totalHoras,
+        total_produtos: resumo.totalProdutos,
+        total_registros: itensAprovados.length,
+        historico_json: JSON.stringify(itensAprovados)
+      });
+
+      if (ok) {
+        alert('Medição enviada com sucesso!');
+      }
+    }
+
+    function ativarAba(container, targetId, titulo) {
+      if (!container) return;
+
+      container.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.toggle('active', link.dataset.target === targetId);
+      });
+
+      container.querySelectorAll('.view-section').forEach(section => {
+        section.classList.toggle('active', section.id === targetId);
+      });
+
+      const pageTitle = container.querySelector('.page-title');
+      if (pageTitle && titulo) pageTitle.textContent = titulo;
+    }
+
+    function configurarNavegacao() {
+      document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function () {
+          const container = this.closest('.app-container');
+          ativarAba(container, this.dataset.target, this.textContent.trim());
+        });
+      });
+    }
+
+    function configurarForms() {
+      document.getElementById('form-horas')?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        registrarItem(
+          'hora',
+          document.getElementById('desc-hora').value,
+          document.getElementById('qtd-hora').value
+        );
+      });
+
+      document.getElementById('form-produtos')?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        registrarItem(
+          'produto',
+          document.getElementById('desc-produto').value,
+          document.getElementById('qtd-produto').value
+        );
+      });
+
+      document.getElementById('form-solicitacao')?.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const titulo = textoSeguro(document.getElementById('titulo-solicitacao').value);
+        const categoria = textoSeguro(document.getElementById('categoria-solicitacao').value);
+        const prioridade = textoSeguro(document.getElementById('prioridade-solicitacao').value);
+        const prazo = textoSeguro(document.getElementById('prazo-solicitacao').value);
+        const detalhes = textoSeguro(document.getElementById('detalhes-solicitacao').value);
+
+        if (!titulo || !detalhes) {
+          alert('Preencha título e detalhes.');
+          return;
+        }
+
+        cacheDados.solicitacoesLocal.push({
+          data: getDataAtual(),
+          titulo,
+          categoria,
+          prioridade,
+          prazo,
+          detalhes,
+          status: 'pendente'
+        });
+
+        atualizarTabelaSolicitacoesLocal();
+
+        const ok = enviarAcaoParaPlanilha('registrar_solicitacao', {
+          data: getDataAtual(),
+          titulo,
+          categoria,
+          prioridade,
+          prazo,
+          detalhes,
+          status: 'pendente',
+          origem: 'portal_cliente'
+        });
+
+        if (ok) {
+          alert('Solicitação enviada com sucesso!');
+          document.getElementById('form-solicitacao').reset();
+        }
+      });
+
+      document.getElementById('form-login')?.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const emailInput = document.getElementById('email').value;
+        const senhaInput = document.getElementById('senha').value;
+        const btnSubmit = document.getElementById('btn-login-submit');
+
+        btnSubmit.textContent = 'Autenticando...';
+        btnSubmit.disabled = true;
+
+        try {
+          const { data, error } = await banco
+            .from('usuarios_wl')
+            .select('*')
+            .eq('email', emailInput)
+            .eq('senha', senhaInput);
+
+          if (error) {
+            alert('Erro ao conectar com o banco: ' + error.message);
+            return;
+          }
+
+          if (data && data.length > 0) {
+            const usuario = data[0];
+            localStorage.setItem('wl_auth', 'true');
+            localStorage.setItem('wl_role', usuario.perfil);
+            await carregarPerfil();
+          } else {
+            alert('E-mail ou senha incorretos!');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Erro crítico no sistema.');
+        } finally {
+          btnSubmit.textContent = 'Acessar Sistema';
+          btnSubmit.disabled = false;
+        }
+      });
+    }
+
+    async function carregarPerfil() {
+      loginView.classList.add('hidden');
+
+      if (localStorage.getItem('wl_role') === 'cliente') {
+        adminApp.classList.add('hidden');
+        clientApp.classList.remove('hidden');
+      } else {
+        clientApp.classList.add('hidden');
+        adminApp.classList.remove('hidden');
+      }
+
+      await carregarDadosDoBanco();
+    }
+
+    function configurarLogout() {
+      document.querySelectorAll('.btn-sair').forEach(btn => {
+        btn.addEventListener('click', function () {
+          localStorage.removeItem('wl_auth');
+          localStorage.removeItem('wl_role');
+          editandoId = null;
+
+          adminApp.classList.add('hidden');
+          clientApp.classList.add('hidden');
+          loginView.classList.remove('hidden');
+
+          document.getElementById('form-login')?.reset();
+          document.getElementById('form-horas')?.reset();
+          document.getElementById('form-produtos')?.reset();
+          document.getElementById('form-solicitacao')?.reset();
+
+          const btnHora = document.getElementById('btn-submit-hora');
+          const btnProd = document.getElementById('btn-submit-produto');
+          if (btnHora) btnHora.textContent = 'Registrar Horas';
+          if (btnProd) btnProd.textContent = 'Registrar Lote';
+        });
+      });
+    }
+
+    function configurarBadgesData() {
+      const adminBadge = document.getElementById('admin-date-badge');
+      const clientBadge = document.getElementById('client-date-badge');
+
+      if (adminBadge) adminBadge.textContent = dataBadgeAtual();
+      if (clientBadge) clientBadge.textContent = dataBadgeAtual();
+    }
+
+    function init() {
+      configurarBadgesData();
+      configurarNavegacao();
+      configurarForms();
+      configurarLogout();
+      atualizarTelas();
+
+      if (localStorage.getItem('wl_auth') === 'true') {
+        carregarPerfil();
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
