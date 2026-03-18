@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WL System | Gestão Haoday</title>
+
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/wl-logo.png">
+  <link rel="apple-touch-icon" href="assets/wl-logo.png">
+  <meta name="theme-color" content="#0F1B6D">
+
+  <link rel="stylesheet" href="styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div id="login-view" class="login-wrapper">
+    <div class="login-container">
+      <div class="brand-login">
+        <img src="assets/wl-logo.png" alt="WL System" class="brand-login-logo">
+        <div class="brand-login-text">
+          <h1>WL SYSTEM</h1>
+          <p>Gestão de Contrato e Transparência</p>
+        </div>
+      </div>
+
+      <form id="form-login">
+        <div class="input-group">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" placeholder="Digite seu e-mail" required />
+        </div>
+
+        <div class="input-group">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" placeholder="••••••••" required />
+        </div>
+
+        <button type="submit" class="btn-primary" id="btn-login-submit">Acessar Sistema</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="admin-app-view" class="app-container hidden">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-sidebar">
+          <img src="assets/wl-logo.png" alt="WL System" class="brand-sidebar-logo">
+          <div class="brand-sidebar-text">
+            <strong class="admin-title">WL SYSTEM</strong>
+            <span>Painel Administrativo</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-nav">
+        <a class="nav-link nav-admin active" data-target="view-dashboard-admin">Dashboard</a>
+        <a class="nav-link nav-admin" data-target="view-horas-admin">Lançar Horas</a>
+        <a class="nav-link nav-admin" data-target="view-produtos-admin">Lançar Produtos</a>
+        <a class="nav-link nav-admin" data-target="view-relatorios-admin">Relatório de Medição</a>
+      </div>
+
+      <div class="sidebar-footer">
+        <a class="btn-sair">Sair do Sistema</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="top-bar">
+        <h1 class="page-title">Visão Geral do Mês</h1>
+        <div class="date-badge" id="admin-date-badge"></div>
+      </div>
+
+      <section id="view-dashboard-admin" class="view-section active">
+        <div class="kpi-grid">
+          <div class="kpi-card highlight">
+            <h3>Faturamento Aprovado</h3>
+            <p class="dash-faturamento">R$ 0,00</p>
+            <span>Total aprovado para faturamento</span>
+          </div>
+
+          <div class="kpi-card">
+            <h3>Produtos Aprovados</h3>
+            <p class="dash-produtos">0</p>
+            <span class="dash-sub-produtos">R$ 7,50 / un.</span>
+          </div>
+
+          <div class="kpi-card">
+            <h3>Horas Aprovadas</h3>
+            <p class="dash-horas">0h</p>
+            <span class="dash-sub-horas">R$ 35,00 / h</span>
+          </div>
+        </div>
+
+        <div class="panel-grid">
+          <div class="panel">
+            <h3>Composição do Faturamento</h3>
+            <div class="chart-wrap">
+              <canvas id="chartComposicao"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Atividades Recentes</h3>
+            <div class="table-wrap">
+              <table class="table-recentes">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Tipo</th>
+                    <th>Resumo</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-horas-admin" class="view-section">
+        <div class="panel">
+          <h3>Registro de Execução Técnica</h3>
+
+          <form id="form-horas">
+            <div class="form-row">
+              <div class="input-group">
+                <label>Descrição da Demanda</label>
+                <input type="text" id="desc-hora" required placeholder="Ex: Ajustes de Layout..." />
+              </div>
+
+              <div class="input-group">
+                <label>Horas Gastas</label>
+                <input type="number" id="qtd-hora" required min="1" placeholder="Ex: 2" />
+              </div>
+
+              <button type="submit" class="btn-primary" id="btn-submit-hora">Registrar Horas</button>
+            </div>
+
+            <div id="loader-hora" class="loader-text">Sincronizando...</div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Histórico de Horas</h3>
+          <div class="table-wrap">
+            <table class="table-horas">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Horas</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th class="align-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-produtos-admin" class="view-section">
+        <div class="panel">
+          <h3>Cadastro Premium de Produtos</h3>
+
+          <form id="form-produtos">
+            <div class="form-row">
+              <div class="input-group">
+                <label>Lote / Categoria</label>
+                <input type="text" id="desc-produto" required placeholder="Ex: Lote Capas..." />
+              </div>
+
+              <div class="input-group">
+                <label>Qtd. de Produtos</label>
+                <input type="number" id="qtd-produto" required min="1" placeholder="Ex: 15" />
+              </div>
+
+              <button type="submit" class="btn-primary" id="btn-submit-produto">Registrar Lote</button>
+            </div>
+
+            <div id="loader-produto" class="loader-text">Sincronizando...</div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Histórico de Produtos</h3>
+          <div class="table-wrap">
+            <table class="table-produtos">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Lote / Referência</th>
+                  <th>Qtd</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th class="align-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-relatorios-admin" class="view-section">
+        <div class="panel center-panel">
+          <h3 class="big-title">Emissão de Medição</h3>
+          <p class="muted mb-24">Gere o PDF ou envie todas as entregas aprovadas para a planilha.</p>
+
+          <div class="total-box">
+            <div class="total-box-label">Total Aprovado a Faturar</div>
+            <div class="relatorio-total">R$ 0,00</div>
+          </div>
+
+          <button class="btn-primary btn-fixed" onclick="exportarPDF()">Exportar Relatório PDF</button>
+          <button class="btn-primary btn-client btn-fixed" onclick="enviarParaPlanilha()">Enviar para Google Sheets</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="client-app-view" class="app-container hidden">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-sidebar">
+          <img src="assets/wl-logo.png" alt="WL System" class="brand-sidebar-logo">
+          <div class="brand-sidebar-text">
+            <strong class="client-title">WL SYSTEM</strong>
+            <span>Portal Haoday</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-nav">
+        <a class="nav-link nav-client active" data-target="view-resumo-client">Resumo Executivo</a>
+        <a class="nav-link nav-client" data-target="view-servicos-client">Aprovar Entregas</a>
+        <a class="nav-link nav-client" data-target="view-solicitacoes-client">Solicitações</a>
+        <a class="nav-link nav-client" data-target="view-metricas-client">Métricas</a>
+        <a class="nav-link nav-client" data-target="view-financeiro-client">Financeiro</a>
+        <a class="nav-link nav-client" data-target="view-relatorios-client">Relatórios</a>
+      </div>
+
+      <div class="sidebar-footer">
+        <a class="btn-sair">Sair do Portal</a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="top-bar">
+        <h1 class="page-title">Resumo Executivo</h1>
+        <div class="date-badge client" id="client-date-badge"></div>
+      </div>
+
+      <section id="view-resumo-client" class="view-section active">
+        <div class="hero-client">
+          <div>
+            <h3>Investimento Técnico Aprovado</h3>
+            <p>Acompanhamento em tempo real das entregas aprovadas, consumo técnico validado e projeção de fechamento.</p>
+          </div>
+          <div class="hero-total">
+            <span>Total Aprovado</span>
+            <strong class="dash-faturamento">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi-card client highlight-client">
+            <h3>Produtos Aprovados</h3>
+            <p class="dash-produtos">0</p>
+            <span>Padrão ouro validado</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>Horas Aprovadas</h3>
+            <p class="dash-horas">0h</p>
+            <span>Suporte, layout e operação</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>Previsão de Fechamento</h3>
+            <p class="dash-faturamento">R$ 0,00</p>
+            <span>Somente itens aprovados</span>
+          </div>
+        </div>
+
+        <div class="panel-grid">
+          <div class="panel">
+            <h3>Últimas Entregas</h3>
+            <div class="table-wrap">
+              <table class="table-recentes">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Serviço</th>
+                    <th>Resumo</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Próximas Ações Recomendadas</h3>
+            <div class="insight-list">
+              <div class="insight-item">
+                <strong>Otimização de páginas</strong>
+                <span>Revisar páginas com maior abandono para melhorar conversão.</span>
+              </div>
+              <div class="insight-item">
+                <strong>Priorização de catálogo</strong>
+                <span>Focar novos cadastros em itens com maior giro e margem.</span>
+              </div>
+              <div class="insight-item">
+                <strong>Ajustes de campanha</strong>
+                <span>Refinar anúncios com ROAS abaixo da meta para aumentar retorno.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-servicos-client" class="view-section">
+        <div class="panel">
+          <h3>Entregas para Aprovação</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Descrição</th>
+                  <th>Qtd/Horas</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-aprovacoes-cliente"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Timeline de Execução</h3>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <strong>Lançamento pelo admin</strong>
+                <span>Hora ou produto é registrado pela WL System.</span>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <strong>Aguardando aprovação</strong>
+                <span>Cliente Haoday analisa e valida o item.</span>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <strong>Status definido</strong>
+                <span>Item pode ser aprovado ou rejeitado pelo cliente.</span>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <strong>Fechamento</strong>
+                <span>Apenas itens aprovados entram na medição final.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-solicitacoes-client" class="view-section">
+        <div class="panel">
+          <h3>Nova Solicitação</h3>
+          <p class="muted mb-24">Formalize solicitações operacionais, sistêmicas e analíticas para a equipe WL iniciar a execução.</p>
+
+          <form id="form-solicitacao">
+            <div class="grid-2">
+              <div class="input-group">
+                <label>Título da Demanda</label>
+                <input type="text" id="titulo-solicitacao" required placeholder="Ex: Instalação de novo gateway" />
+              </div>
+
+              <div class="input-group">
+                <label>Categoria</label>
+                <input type="text" id="categoria-solicitacao" placeholder="Ex: Layout, ERP, Produto, Ads" />
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="input-group">
+                <label>Prioridade</label>
+                <input type="text" id="prioridade-solicitacao" placeholder="Ex: Alta" />
+              </div>
+
+              <div class="input-group">
+                <label>Prazo desejado</label>
+                <input type="text" id="prazo-solicitacao" placeholder="Ex: 3 dias úteis" />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label>Detalhes</label>
+              <input type="text" id="detalhes-solicitacao" required placeholder="Descreva o pedido com clareza" />
+            </div>
+
+            <button type="submit" class="btn-primary btn-client btn-inline">Registrar Solicitação</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Histórico de Solicitações</h3>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Título</th>
+                  <th>Status</th>
+                  <th>Prioridade</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-solicitacoes-cliente">
+                <tr>
+                  <td colspan="4" class="center">Sem solicitações locais exibidas.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-metricas-client" class="view-section">
+        <div class="kpi-grid">
+          <div class="kpi-card client">
+            <h3>Ticket Médio</h3>
+            <p>R$ 342,50</p>
+            <span class="status-badge status-ok">+12% vs mês anterior</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>CAC</h3>
+            <p>R$ 45,90</p>
+            <span class="status-badge status-ok">Otimizado</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>ROAS</h3>
+            <p>4.8x</p>
+            <span class="status-badge status-ok">Acima da meta</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Diagnóstico de Funil de Vendas</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Canal</th>
+                <th>Sessões</th>
+                <th>Conversão</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Google Pesquisa Orgânica</td>
+                <td>4.520</td>
+                <td>2.1%</td>
+                <td><span class="status-badge status-ok">Tags OK</span></td>
+              </tr>
+              <tr>
+                <td>Meta Ads</td>
+                <td>8.100</td>
+                <td>3.4%</td>
+                <td><span class="status-badge status-ok">Pixel Ativo</span></td>
+              </tr>
+              <tr>
+                <td>Acesso Direto</td>
+                <td>2.300</td>
+                <td>1.8%</td>
+                <td><span class="status-badge status-ok">Rastreio OK</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="view-financeiro-client" class="view-section">
+        <div class="kpi-grid">
+          <div class="kpi-card client">
+            <h3>Total por Produtos Aprovados</h3>
+            <p id="financeiro-produtos">R$ 0,00</p>
+            <span>Cadastros validados</span>
+          </div>
+
+          <div class="kpi-card client">
+            <h3>Total por Horas Aprovadas</h3>
+            <p id="financeiro-horas">R$ 0,00</p>
+            <span>Serviços técnicos validados</span>
+          </div>
+
+          <div class="kpi-card client highlight-client">
+            <h3>Total Geral Aprovado</h3>
+            <p class="dash-faturamento">R$ 0,00</p>
+            <span>Consolidado do período</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Resumo Financeiro</h3>
+          <div class="summary-grid">
+            <div class="summary-box">
+              <strong>Valor unitário por produto</strong>
+              <span>R$ 7,50</span>
+            </div>
+            <div class="summary-box">
+              <strong>Valor por hora técnica</strong>
+              <span>R$ 35,00</span>
+            </div>
+            <div class="summary-box">
+              <strong>Status da medição</strong>
+              <span>Em acompanhamento</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="view-relatorios-client" class="view-section">
+        <div class="panel">
+          <h3>Central de Relatórios</h3>
+          <p class="muted mb-24">Baixe ou gere relatórios do período atual.</p>
+
+          <div class="report-actions">
+            <button class="btn-primary btn-inline" onclick="exportarPDF()">Baixar Relatório em PDF</button>
+            <button class="btn-primary btn-client btn-inline" onclick="enviarParaPlanilha()">Atualizar Medição no Sheets</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Resumo para Fechamento</h3>
+          <div class="total-box alt">
+            <div class="total-box-label">Previsão Atual Aprovada</div>
+            <div class="relatorio-total">R$ 0,00</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
